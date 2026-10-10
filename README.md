@@ -26,7 +26,7 @@ The motivation behind this project was to prepare me for my ultimate goal of bui
 
 As for the self-balancing arm, my initial aim was to have it hover exactly vertically if left unperturbed, and if perturbed, for it to gracefully return to its original position within around 1-3 seconds. This however proved to be impossible for reasons I'll explain below, so eventually I settled on aiming for the arm to hover at an angle of 8 degrees away from the normal, and for it to return to its original position within 5-10 seconds. There were additional aims as well: I wanted the structure to not require plugging into some kind of external power source (so using a battery instead), and for the entire structure to not have any components dangling out the sides or with any exposed wires. I also wanted the structure to be as compact as possible, for it to be turned on and off via a switch, and to have the electronic components to be visible from the outside for aesthetic purposes. 
 
-## Electronics:
+## Electronic Circuit:
 <img width="1244" height="495" alt="image" src="https://github.com/user-attachments/assets/891671d6-dbcb-42e6-a3cb-c769a2c830ad" />
 
 Looking left to right, the LiPo battery supplies power into two paths: one to power the propeller, and the other to power the Raspberry Pi and MPU. 
@@ -67,12 +67,208 @@ The following pictures are my final designs for the base and arm, with added dia
 
 I hadn't done much soldering before the project, so when I had to shorten or combine wires together, my first few attempts of soldering did not go very well at all and I had to cut sections off that failed badly and try again. Eventually I figured out that fraying both ends and then interlocking them and adding solder with heat-shrink over the top, then wrapping all wires together with electrical tape for added strength worked very well. The basic thin jumper wires from breadboard circuits were very fragile when trying to solder the buck converter to the Pico, and so I bought and used thicker wire (18 AWG) instead. There were a couple times where I tested the circuit to see if it would work, in which I hadn't covered the open wires where they were soldered on the components, and also hadn't noticed that my metal axel was lying on the table connecting two of them together. Thankfully nothing was permanently broken but the loud bang I received when turning on the switch made me far more careful and wrap every open wire in electrical tape after that. I was also very careful about the propeller and it potentially cutting me if I wasn't careful, although there was a time where I had removed the propeller, but the motor was lying sideways on the table when I tested the circuit, causing it suddenly and very quickly roll off the table, taking all the electrical components with it. Definitely didn't do any more tests without bolting down the motor first after that. 
 
-## Code:
+## Code and PID Tuning:
+from machine import Pin, I2C, PWM
+import time
+import math
+import network
+import socket
+
+# Establishing I2C communication with the MPU-6050
+chip = I2C(0, scl=Pin(5), sda=Pin(4), freq=100000)    
+
+# Wake up the Pico
+chip.writeto_mem(0x68, 0x6B, b'\x00')
+
+# Creating a PWM signal from Pin 0 with frequency of 50 Hz
+esc = PWM(Pin(0))
+esc.freq(50)
+
+# Creating a function that takes a pulse value (1000 is minimum pulse for motor, 2000 is maximum pulse), and converts it to a duty cycle that the motor uses
+def esc_pulse(pulse_us):
+    duty = int(pulse_us / 20000 * 65535)
+    esc.duty_u16(duty)
+
+# Creating a function that takes two 8-bit numbers arriving from the MPU and converts it to a single 16-bit value
+# Also converts the second half of numbers between 0 and 65535 to the negative equivalents of numbers 0 to 32768, so that we can recognise negative angles 
+def signed_16(high, low):        
+    value = (high << 8) | low    
+    if value >= 0x8000:         
+        value -= 0x10000         
+    return value                
+
+# k is the counter that increases by one each cycle in the main code below.
+k = 0
+# sample_size refers to the number of initial cycles used to calibrate the anguler velocity measurements before the main cycle.
+sample_size = 300
+
+# alpha is a multiplier involved in the complementary filter
+alpha = 0.98
+# integral tracks the integral term of the PID filter
+integral = 0
+
+# Creating lists for the calibration and recording of angles
+sums = [0.0] * 6
+biases = [0.0] * 6
+angles = [0.0] * 3
+
+# The three coefficients of a PID controller
+Kp = 4
+Ki = 1
+Kd = 1.5
+
+# The base throttle for the motor regardless of PID additions
+Base = 1096
+# threshold defines the target angle for the arm. It's called threshold as later in the code, it controls different actions within a for loop if the arm passes this threshold angle.
+threshold = 8
+# A coefficient used to control the rate of decay of the integral term after it passes the threshold. After playing around with varying values, I ultimately didn't end up using this and so has been set to 1, but I've kept it here anyway.
+decay = 1
+
+# Defining the WiFi variables for connection later in the code. Removed my personal values for obvious reasons.
+SSID = "WIFI_NAME_HERE"
+PASSWORD = "WIFI_PASSWORD_HERE"
+
+# Connecting to WiFi
+wifi = network.WLAN(network.STA_IF)
+wifi.active(True)
+wifi.connect(SSID, PASSWORD)
+
+# Allows time for WiFi to connect before moving on
+while not wifi.isconnected():
+    time.sleep(0.5)
 
 
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-## PID Tuning:
+sock.bind(("0.0.0.0", 5005))
+sock.setblocking(False)
 
+pc_address = None
+
+def check_wifi():
+
+    global Kp, Ki, Kd, Base, threshold
+    global pc_address
+
+    latest = None
+
+    while True:
+        try:
+            data, address = sock.recvfrom(1024)
+            latest = data
+            pc_address = address
+
+        except OSError:
+            break
+
+    if latest is not None:
+        try:
+            message = latest.decode()
+            received = message.split(",")
+            
+            if len(received) == 5:
+                Kp = float(received[0])
+                Ki = float(received[1])
+                Kd = float(received[2])
+                Base = float(received[3])
+                threshold = float(received[4])
+
+        except (ValueError, IndexError):
+            pass
+
+# Sets an initial pulse to the motor to turn it on, then waits a second as the motor needs some time before its ready to recieve higher pulse values.
+esc_pulse(1000)
+time.sleep(1)
+
+# 
+last_telemetry = time.ticks_ms()
+
+
+# This is the main loop of the program. It consists largely of recieving values from the MPU, asigning them to acceleration or angular velocity values, removing biases in the angular velocities, calculating the angle using a complementary filter, using that angle within a PID controller, then outputting a pulse value for the motor.
+while True:
+    
+    check_wifi()
+    
+    
+    # Recieving data from MPU, then asigning values, then putting values into a list called values.
+    # Values have been scaled so that accelerations are in terms of g, and angular velocities in rad/second.
+    data = chip.readfrom_mem(0x68, 0x3B, 14)     
+
+    ax = signed_16(data[0], data[1]) / 16384     
+    ay = signed_16(data[2], data[3]) / 16384
+    az = signed_16(data[4], data[5]) / 16384
+
+    gx = signed_16(data[8], data[9]) / 131      
+    gy = signed_16(data[10], data[11]) / 131
+    gz = signed_16(data[12], data[13]) / 131
+    
+    values = [ax, ay, az, gx, gy, gz]
+
+    # k is the counter that increases every loop. Until k is greater than the sample_size, the values from the MPU are used to calibrate all subsequent values afterwards.
+    # I chose not to calibrate the acceleration values as that would remove the interaction with gravity, and thus the target angle would always be relative to the position of the arm when the switch is turned on, rather than always relative to the vertical.
+    if k < sample_size:
+        for i in range(3):
+            sums[i+3] += values[i+3]
+    elif k == sample_size:
+        for i in range(6):
+            biases[i] = sums[i] / sample_size
+        
+        # t0 is used for the integral part of the PID controller. It defines the initial time and will be taken away from the later (current) time, t1 to create dt.
+        t0 = time.ticks_us()
+    else:
+        for i in range(6):
+            values[i] -= biases[i]
+        
+        # Here we are creating the current time, t1. dt is then created afterwards and converted to microseconds. The inital time is then updated to the current time for next loop.
+        t1 = time.ticks_us()
+        dt = time.ticks_diff(t1, t0) / 1_000_000
+        t0 = t1
+        
+        # The roll and pitch values are calculated using the acceleration values to be used within the complementary filter. Roll and yaw ultimately aren't used here, this code was originally code from when I was playing around the with MPU by itself, trying to graph all three angles
+        acc_roll = math.degrees(math.atan2(ay, az))
+        acc_pitch = math.degrees(math.atan2(-ax, math.sqrt(ay**2 + az**2)))
+        
+        # Calculating Roll, Pitch, and Yaw using the complementary filter, combining the angle estimates from both the acceleration values and angular velocity values. Here, alpha is used to control the prioritisation of each estimation within the filter.
+        angles[0] = alpha * (angles[0] + values[3] * dt) + (1 - alpha) * acc_roll
+        angles[1] = alpha * (angles[1] + values[4] * dt) + (1 - alpha) * acc_pitch
+        angles[2] += values[5] * dt
+        
+        # This defines the error: how the current angle compares to the target angle. I found there was a systematic error of around 2.5 degrees and so that has been compensated for here.
+        error = angles[1] - threshold + 2.5
+        
+        # Defining the proportional term 
+        P = Kp * error
+        
+        # 
+        if error > 0:
+            integral += error * dt
+        else:
+            integral += decay * error * dt
+            integral = max(-5, integral)
+            
+        I = Ki * integral
+        
+        D = Kd * values[4]
+        
+        PID = P + I + D
+        
+        pulse = Base + PID
+        pulse = max(1000, min(2000, pulse)) 
+        esc_pulse(pulse)
+        
+        if time.ticks_diff(time.ticks_ms(), last_telemetry) >= 50:
+            if pc_address is not None:
+                try:
+                    message = "{},{}".format(error, pulse)
+                    sock.sendto(message.encode(), pc_address)
+                except OSError:
+                    pass
+                
+            last_telemetry = time.ticks_ms()
+            
+        time.sleep(0.01)
+    
+    k += 1
 
 
 ## Experimental Results:
