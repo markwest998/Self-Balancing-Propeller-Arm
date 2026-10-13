@@ -9,13 +9,17 @@ I built a one-dimensional self-balancing arm from scratch using a Raspberry Pi P
 
 
 ## Demonstration:
-
+The following are demonstrations of the arm. 
+This video shows the arm stabilizing around an angle of 8 degrees from the normal. 
 https://github.com/user-attachments/assets/cc19a248-7b5d-472b-b7f7-29e474a6c493
 
+Here, even after perturbing the arm, it quickly corrects to its original angle.
 https://github.com/user-attachments/assets/626fe528-b719-49d1-bcd2-d1c44d32caf1
 
+In fact, despite the entire base tilting, the arm can still return to its targetted angle.
 https://github.com/user-attachments/assets/6ee76d56-edfb-427c-8fbc-3b9a1a96ed86
 
+Provided the changes to the tilting of the base are slow enough, the arm can handle its base being brought back to its original orientation without falling over to the right.
 https://github.com/user-attachments/assets/a21b0ab1-aff1-4e92-b919-6b75410c2ac8
 
 
