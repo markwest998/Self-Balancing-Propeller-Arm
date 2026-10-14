@@ -1,4 +1,4 @@
-# Self-Balancing Propeller Arm 
+[PID Controller.py](https://github.com/user-attachments/files/33410965/PID.Controller.py)# Self-Balancing Propeller Arm 
 ## Overview:
 I built a one-dimensional self-balancing arm from scratch using a Raspberry Pi Pico 2W, MPU-6050 IMU, brushless motor/ESC and a custom 3D-printed structure. The system uses accelerometer and gyroscope measurements within a complementary filter to estimate the arm angle, which is then regulated using a modified PID controller. From a range of initial base orientations and any sudden perturbations, the arm reliably converges to within around ±1° of the target angle within 5-10 seconds. This project took about a month to complete. 
 
@@ -9,17 +9,21 @@ I built a one-dimensional self-balancing arm from scratch using a Raspberry Pi P
 
 
 ## Demonstration:
-The following are demonstrations of the arm. 
+The following are demonstrations of the arm:
 This video shows the arm stabilizing around an angle of 8 degrees from the normal. 
+
 https://github.com/user-attachments/assets/cc19a248-7b5d-472b-b7f7-29e474a6c493
 
 Here, even after perturbing the arm, it quickly corrects to its original angle.
+
 https://github.com/user-attachments/assets/626fe528-b719-49d1-bcd2-d1c44d32caf1
 
 In fact, despite the entire base tilting, the arm can still return to its targetted angle.
+
 https://github.com/user-attachments/assets/6ee76d56-edfb-427c-8fbc-3b9a1a96ed86
 
 Provided the changes to the tilting of the base are slow enough, the arm can handle its base being brought back to its original orientation without falling over to the right.
+
 https://github.com/user-attachments/assets/a21b0ab1-aff1-4e92-b919-6b75410c2ac8
 
 
@@ -73,7 +77,24 @@ I hadn't done much soldering before the project, so when I had to shorten or com
 
 ## Code and PID Tuning:
 
+Attached are the two programs I created for this project. "Pico Code" is the program installed onto the Raspberry Pi Pico. It involves establishing a connection to the PID controller code on my PC via WiFi, then receiving acceleration and angular velocity data from the IMU, decoding, calibrating if necessary, then using those values within a complementary filter to calculate the current angle of the arm. It then compares that angle with the target angle (called threshold in the code) and delivers a pulse to the motor in accordance to the PID controller. The current error and pulse is also sent to the PC to graph.
+
 [Pico Code.py](https://github.com/user-attachments/files/33318283/Pico.Code.py)
+
+This second program is on my PC and allows me to change the PID variables in real time as the arm is running. It involves creating sliders to update and send new PID values to the Pico, but also graphing the error to see how well the arm is doing at balancing. 
+
+[PID Controller.py](https://github.com/user-attachments/files/33410977/PID.Controller.py)
+
+I had initially tuned the PID values for hours on the Pico manually in between tests which was incredibly boring and ineffective as I couldn't immediately see the affects of my changes if I slightly altered a value. I then tried using the many free pins on the Pico to connect potentiometers in order to tune the PID in real time by hand. However, this proved to be extremely impractical as the wires would get in the way of the arm and provide additional tension meaning I couldn't accurately tune the arm for when wires weren't present. I then remembered I could use the WiFi feature of the Pico and set up the code above which proved to be extremely effective. 
+
+I had a rough understanding of what a PID controller does and its features going in, but this project gave me far more understanding on each of the three components (plus the base pulse) after completion. 
+The largest insight I gained was that I should aim for the PID additions to account for as little of the total pulse as possible, with instead as much as possible being attributed to the base pulse. This keeps changes in pulse to a minimum and thus reduces any jittery behaviour of the arm. To do this, since the current pulse was always displayed on my screen, whilst the arm was roughly stable around the target angle, I changed the base pulse to whatever pulse was displayed on my screen. For example, if the base pulse was originally (guessed to be) 1050, and through PID additions, the arm stabilized at the target angle at a pulse of 1086 (comprised of 1050 base + 36 PID additions), I simply adjusted the pulse to 1086 (now comprised of 1086 base + 0 PID additions). 
+
+After finding the base pulse, to find the appropriate Kp coefficient, I then held and released the arm from different angles away from the target angle and then increased the value until the arm could comfortably but gracefully return to its original position. This reduces the impact of the integral component, which is good to avoid potential oscillations. I discovered that the integral term is best used to correct the current angle if the proportional term stabilizes the arm at not quite the target angle and so only a small amount is required to perform this correction, but in general should be kept to a minimum if possible. For the derivative term, I played around with a variety of values until I found that the arm returned to its original angle with the least amount of over or under correction when given a sharp perturbation. 
+
+The above paragraph is what I believe should be the intended approach to tune the PID controller and I had initially attempted to tune the arm using that method. Through this approach, the arm would be able to recover from any perturbation within a second or so. However, in my particular case, I had to use a different approach. I discovered that giving the arm a large Kp value, a value that would be required to bring the arm up to the original angle from any initial angle, caused the arm a lot of jittery and uncontrolled behaviour, and it had lost of a lot of its graceful nature. I therefore adopted a different strategy involving a reduced Kp value for a higher Ki value to compensate. This way, the arm's recovery pulse could be mostly attributed to the proportional term, but ultimately it would be the integral term that would slowly bring the arm to its original position. Whilst this approach did slow the recovery time from 1-2 seconds to 5-10 seconds, I did find the recovery to be more controlled and graceful: qualities I valued more than speed of recovery.  
+
+There was another pressing issue I encountered during my testing. 
 
 ## Experimental Results:
 
