@@ -109,20 +109,21 @@ Below are some screenshots of the error graph in a variety of arm circumstances:
 
 These are two snapshots taken of the arm stabilizing at 8 degrees with no perturbation. Here you can see that the arm can stabilize within roughly a degree of the target angle consistently.
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/0c1882f0-a591-49d3-a44d-2757d32a6f16" alt="Main Front" width="400">
-  <img src="https://github.com/user-attachments/assets/3306cbf0-b8d8-4ae0-8113-1bb6bca72219" alt="Main Front" width="400">
+  <img src="https://github.com/user-attachments/assets/97ea0cd3-ebcb-445d-a39c-a13ea90becd8" alt="Main Front" width="400">
+  <img src="https://github.com/user-attachments/assets/86553b8e-4cbf-4e9e-9eaf-e0bbbaf699cc" alt="Main Front" width="400">
 </p>
+
 
 These snapshots show two examples of a sudden and sharp perturbation to the arm (quickly prodding the arm with my finger). You can see the derivative term strongly activating causing the immediate and fast return back to near the target angle, with the integral and proportional terms slowly fixing any remaining error over the course of the next few seconds.
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/cdf9c535-f105-4fe9-9e5c-9c83415f775c" alt="Main Front" width="400">
-  <img src="https://github.com/user-attachments/assets/05c3feeb-3b11-4f1b-8c5c-3f5e13e6756b" alt="Main Front" width="400">
+  <img src="https://github.com/user-attachments/assets/48a60d6d-36e5-4102-8b4f-d789c26175f0" alt="Main Front" width="400">
+  <img src="https://github.com/user-attachments/assets/d4073d5e-b768-4185-9991-fe64f599584f" alt="Main Front" width="400">
 </p>
 
 Here the entire base was tilted to an angle of around 25 degrees from horizontal at time = 181 seconds (I lifted the base up and placed the end on a block). Given the slow change, the derivative term isn't used nearly as much here as above, and so the correction back to the target angle isn't as quick here. Nevertheless, the arm does return to its original position within 5-10 seconds; by time = 190, the arm is completely back to how it was before.
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/0e6ee64c-2ddd-437b-bec0-55e1c4ba02e5" alt="Main Front" width="400">
-  <img src="https://github.com/user-attachments/assets/0204f0a2-7ebf-4eee-9bfb-dfd60817825a" alt="Main Front" width="400">
+  <img src="https://github.com/user-attachments/assets/7625c610-4409-423d-8232-25a2c2774fe3" alt="Main Front" width="400">
+  <img src="https://github.com/user-attachments/assets/a7ff3ced-365b-42f3-9174-5d0dc3a6cc96" alt="Main Front" width="400">
 </p>
 
 ## Conclusion:
