@@ -3,9 +3,9 @@
 I built a one-dimensional self-balancing arm from scratch using a Raspberry Pi Pico 2W, MPU-6050 IMU, brushless motor/ESC and a custom 3D-printed structure. The system uses accelerometer and gyroscope measurements within a complementary filter to estimate the arm angle, which is then regulated using a modified PID controller. From a range of initial base orientations and any sudden perturbations, the arm reliably converges to within around ±1° of the target angle within 5-10 seconds. This project took about a month to complete. 
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/ce0f7aec-0ac5-47d1-a07b-34c93d79d2fe" alt="Main Front" width="300">
-  <img src="https://github.com/user-attachments/assets/c8714c1e-c947-4d16-bef6-3010c734cec1" alt="Main Back" width="300">
-  <img src="https://github.com/user-attachments/assets/46f8f84c-eca2-4cc3-ad5b-2a105ba8c356" alt="Main Back" width="250">
+  <img src="https://github.com/user-attachments/assets/ce0f7aec-0ac5-47d1-a07b-34c93d79d2fe" alt="Main Front" width="270">
+  <img src="https://github.com/user-attachments/assets/c8714c1e-c947-4d16-bef6-3010c734cec1" alt="Main Back" width="270">
+  <img src="https://github.com/user-attachments/assets/46f8f84c-eca2-4cc3-ad5b-2a105ba8c356" alt="Main Back" width="230">
 </p>
 
 ## Demonstration:
@@ -51,8 +51,8 @@ Finally, although not included in this schematic, a mechanical switch was added 
 ## Structural Design and Assembly:
 By far the most time consuming part of this project was designing the base and arm. I started first with a LEGO prototype to get a rough idea for the design; it included a basic straight arm with an axel on the bottom to connect to the base and allow for the arm to freely spin. For the base, I added high-rising walls on either side of the arm to stop the arms tilting at a given point so that it couldn't fall over completely and damage anything. I had also planned for the arm to cause the base to tilt over when the arm hits the limits of the base, and so added some extra plates on either end of the base to increase its length in the direction of the arm's motion. I was originally going to use this for my final design (wasn't taking the project very seriously at the time) had it not been for the fact that LEGO isn't particularly sturdy and the arm and base would rattle at the axel. Moving to 3D printing + CAD was therefore the next obvious step.
 
-<img src="https://github.com/user-attachments/assets/4ccd1635-0377-46ea-9c2d-4ecabac37eff" alt="Main Front" width="240">
-<img src="https://github.com/user-attachments/assets/d66232ba-132c-482f-9ac1-ac523c72d363" alt="Main Front" width="650">
+<img src="https://github.com/user-attachments/assets/4ccd1635-0377-46ea-9c2d-4ecabac37eff" alt="Main Front" width="220">
+<img src="https://github.com/user-attachments/assets/d66232ba-132c-482f-9ac1-ac523c72d363" alt="Main Front" width="620">
 
 Above shows the evolution of the designs I came up with before finalizing on version 4 on the right. My first model was very basic, more or less an equivalent to the LEGO model I'd made to test for sturdiness. The arm I'd put more thought into however, there was a cutout for the Pico to slot into such that the pins would be visible from the other side, another for the MPU to fit in snugly at the top, another for the wires of the motor to travel down the arm, two larger ones for the ESC and buck converter to fit into the arm, and one more for the USB cable to be connected whilst the Pico is fixed onto the arm. I also had holes for the motor and Pico to be fixed onto the arm, originally intending to make my own 3D printed compressible pins that would compress and then snap back after going through the hole to hold the Pico and motor in place. This idea would later be abandoned as I decided to simply super glue the Pico to the arm on the final version and, once I realized the motor must be embedded into the arm to avoid complications with the location of the center of gravity, thus shortening the distance between motor and outside to the length of a screw, I used the given screws for the motor instead. I also wanted to remove as much slack as possible between the arm and base, and so printed the arm to be exactly 0.4mm slimmer in width compared to the width of the inside arm of the base. I found this clearance to work surprisingly well and so didn't change it for all future versions. 
 
@@ -65,13 +65,13 @@ I ran into a rather large problem though when it came to actually permanently in
 The following pictures are my final designs for the base and arm, with added diagrams for the dimensions:
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/dc05e420-056d-4a3c-bebb-e457861a2637" alt="Main Front" width="600">
-  <img src="https://github.com/user-attachments/assets/10d28d17-75ad-4287-b20c-f1025ee152b5" alt="Main Front" width="600">
+  <img src="https://github.com/user-attachments/assets/dc05e420-056d-4a3c-bebb-e457861a2637" alt="Main Front" width="300">
+  <img src="https://github.com/user-attachments/assets/10d28d17-75ad-4287-b20c-f1025ee152b5" alt="Main Front" width="300">
 </p>
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/54107afe-b979-44c5-8b15-4614c3b3f54c" alt="Main Front" width="600">
-  <img src="https://github.com/user-attachments/assets/0582b7e7-84e0-44d8-8530-00c484e75965" alt="Main Front" width="600">
+  <img src="https://github.com/user-attachments/assets/54107afe-b979-44c5-8b15-4614c3b3f54c" alt="Main Front" width="300">
+  <img src="https://github.com/user-attachments/assets/0582b7e7-84e0-44d8-8530-00c484e75965" alt="Main Front" width="300">
 </p>
 
 I hadn't done much soldering before the project, so when I had to shorten or combine wires together, my first few attempts of soldering did not go very well at all and I had to cut sections off that failed badly and try again. Eventually I figured out that fraying both ends and then interlocking them and adding solder with heat-shrink over the top, then wrapping all wires together with electrical tape for added strength worked very well. The basic thin jumper wires from breadboard circuits were very fragile when trying to solder the buck converter to the Pico, and so I bought and used thicker wire (18 AWG) instead. There were a couple times where I tested the circuit to see if it would work, in which I hadn't covered the open wires where they were soldered on the components, and also hadn't noticed that my metal axel was lying on the table connecting two of them together. Thankfully nothing was permanently broken but the loud bang I received when turning on the switch made me far more careful and wrap every open wire in electrical tape after that. I was also very careful about the propeller and it potentially cutting me if I wasn't careful, although there was a time where I had removed the propeller, but the motor was lying sideways on the table when I tested the circuit, causing it suddenly and very quickly roll off the table, taking all the electrical components with it. Definitely didn't do any more tests without bolting down the motor first after that. 
@@ -109,20 +109,20 @@ Below are some screenshots of the error graph in a variety of arm circumstances:
 
 These are two snapshots taken of the arm stabilizing at 8 degrees with no perturbation. Here you can see that the arm can stabilize within roughly a degree of the target angle consistently.
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/0c1882f0-a591-49d3-a44d-2757d32a6f16" alt="Main Front" width="600">
-  <img src="https://github.com/user-attachments/assets/3306cbf0-b8d8-4ae0-8113-1bb6bca72219" alt="Main Front" width="600">
+  <img src="https://github.com/user-attachments/assets/0c1882f0-a591-49d3-a44d-2757d32a6f16" alt="Main Front" width="300">
+  <img src="https://github.com/user-attachments/assets/3306cbf0-b8d8-4ae0-8113-1bb6bca72219" alt="Main Front" width="300">
 </p>
 
 These snapshots show two examples of a sudden and sharp perturbation to the arm (quickly prodding the arm with my finger). You can see the derivative term strongly activating causing the immediate and fast return back to near the target angle, with the integral and proportional terms slowly fixing any remaining error over the course of the next few seconds.
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/cdf9c535-f105-4fe9-9e5c-9c83415f775c" alt="Main Front" width="600">
-  <img src="https://github.com/user-attachments/assets/05c3feeb-3b11-4f1b-8c5c-3f5e13e6756b" alt="Main Front" width="600">
+  <img src="https://github.com/user-attachments/assets/cdf9c535-f105-4fe9-9e5c-9c83415f775c" alt="Main Front" width="300">
+  <img src="https://github.com/user-attachments/assets/05c3feeb-3b11-4f1b-8c5c-3f5e13e6756b" alt="Main Front" width="300">
 </p>
 
 Here the entire base was tilted to an angle of around 25 degrees from horizontal at time = 181 seconds (I lifted the base up and placed the end on a block). Given the slow change, the derivative term isn't used nearly as much here as above, and so the correction back to the target angle isn't as quick here. Nevertheless, the arm does return to its original position within 5-10 seconds; by time = 190, the arm is completely back to how it was before.
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/0e6ee64c-2ddd-437b-bec0-55e1c4ba02e5" alt="Main Front" width="600">
-  <img src="https://github.com/user-attachments/assets/0204f0a2-7ebf-4eee-9bfb-dfd60817825a" alt="Main Front" width="600">
+  <img src="https://github.com/user-attachments/assets/0e6ee64c-2ddd-437b-bec0-55e1c4ba02e5" alt="Main Front" width="300">
+  <img src="https://github.com/user-attachments/assets/0204f0a2-7ebf-4eee-9bfb-dfd60817825a" alt="Main Front" width="300">
 </p>
 
 ## Conclusion:
