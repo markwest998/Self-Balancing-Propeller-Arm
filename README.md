@@ -1,12 +1,12 @@
-[PID Controller.py](https://github.com/user-attachments/files/33410965/PID.Controller.py)# Self-Balancing Propeller Arm 
+# Self-Balancing Propeller Arm 
 ## Overview:
 I built a one-dimensional self-balancing arm from scratch using a Raspberry Pi Pico 2W, MPU-6050 IMU, brushless motor/ESC and a custom 3D-printed structure. The system uses accelerometer and gyroscope measurements within a complementary filter to estimate the arm angle, which is then regulated using a modified PID controller. From a range of initial base orientations and any sudden perturbations, the arm reliably converges to within around ±1° of the target angle within 5-10 seconds. This project took about a month to complete. 
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/5cd33ece-e322-4828-9722-45c406142014" alt="Main Front" width="500">
-  <img src="https://github.com/user-attachments/assets/33a3d235-10cc-4d66-813a-8e8b13e97d36" alt="Main Back" width="441">
+  <img src="https://github.com/user-attachments/assets/ce0f7aec-0ac5-47d1-a07b-34c93d79d2fe" alt="Main Front" width="350">
+  <img src="https://github.com/user-attachments/assets/c8714c1e-c947-4d16-bef6-3010c734cec1" alt="Main Back" width="350">
+  <img src="https://github.com/user-attachments/assets/46f8f84c-eca2-4cc3-ad5b-2a105ba8c356" alt="Main Back" width="301">
 </p>
-
 
 ## Demonstration:
 The following are demonstrations of the arm:
@@ -79,13 +79,13 @@ I hadn't done much soldering before the project, so when I had to shorten or com
 
 Attached are the two programs I created for this project. "Pico Code" is the program installed onto the Raspberry Pi Pico. It involves establishing a connection to the PID controller code on my PC via WiFi, then receiving acceleration and angular velocity data from the IMU, decoding, calibrating if necessary, then using those values within a complementary filter to calculate the current angle of the arm. It then compares that angle with the target angle (called threshold in the code) and delivers a pulse to the motor in accordance to the PID controller. The current error and pulse is also sent to the PC to graph.
 
-[Pico Code.py](https://github.com/user-attachments/files/33318283/Pico.Code.py)
+[Pico Code.py](https://github.com/user-attachments/files/33470027/Pico.Code.py)
 
 This second program is on my PC and allows me to change the PID variables in real time as the arm is running. It involves creating sliders to update and send new PID values to the Pico, but also graphing the error to see how well the arm is doing at balancing. 
 
-[PID Controller.py](https://github.com/user-attachments/files/33410977/PID.Controller.py)
+[PID Controller.py](https://github.com/user-attachments/files/33470039/PID.Controller.py)
 
-I had initially tuned the PID values for hours on the Pico manually in between tests which was incredibly boring and ineffective as I couldn't immediately see the affects of my changes if I slightly altered a value. I then tried using the many free pins on the Pico to connect potentiometers in order to tune the PID in real time by hand. However, this proved to be extremely impractical as the wires would get in the way of the arm and provide additional tension meaning I couldn't accurately tune the arm for when wires weren't present. I then remembered I could use the WiFi feature of the Pico and set up the code above which proved to be extremely effective. 
+I had initially tuned the PID values for hours on the Pico manually in between tests. This proved to be ineffective as I couldn't immediately see the affects of my changes if I slightly altered a value, but more importantly, it was incredibly boring. I then tried using the many free pins on the Pico to connect potentiometers in order to tune the PID in real time by hand. However, this proved to be extremely impractical as the wires would get in the way of the arm and provide additional tension meaning I couldn't accurately tune the arm for when wires weren't present. I then remembered I could use the WiFi feature of the Pico and set up the code above which proved to be extremely effective. 
 
 I had a rough understanding of what a PID controller does and its features going in, but this project gave me far more understanding on each of the three components (plus the base pulse) after completion. 
 The largest insight I gained was that I should aim for the PID additions to account for as little of the total pulse as possible, with instead as much as possible being attributed to the base pulse. This keeps changes in pulse to a minimum and thus reduces any jittery behaviour of the arm. To do this, since the current pulse was always displayed on my screen, whilst the arm was roughly stable around the target angle, I changed the base pulse to whatever pulse was displayed on my screen. For example, if the base pulse was originally (guessed to be) 1050, and through PID additions, the arm stabilized at the target angle at a pulse of 1086 (comprised of 1050 base + 36 PID additions), I simply adjusted the pulse to 1086 (now comprised of 1086 base + 0 PID additions). 
@@ -94,9 +94,36 @@ After finding the base pulse, to find the appropriate Kp coefficient, I then hel
 
 The above paragraph is what I believe should be the intended approach to tune the PID controller and I had initially attempted to tune the arm using that method. Through this approach, the arm would be able to recover from any perturbation within a second or so. However, in my particular case, I had to use a different approach. I discovered that giving the arm a large Kp value, a value that would be required to bring the arm up to the original angle from any initial angle, caused the arm a lot of jittery and uncontrolled behaviour, and it had lost of a lot of its graceful nature. I therefore adopted a different strategy involving a reduced Kp value for a higher Ki value to compensate. This way, the arm's recovery pulse could be mostly attributed to the proportional term, but ultimately it would be the integral term that would slowly bring the arm to its original position. Whilst this approach did slow the recovery time from 1-2 seconds to 5-10 seconds, I did find the recovery to be more controlled and graceful: qualities I valued more than speed of recovery.  
 
-There was another pressing issue I encountered during my testing. 
+There was another pressing issue I encountered during my testing. The wires from the battery connect to the electrical components by running up one of the sides of the arm. During my design testing, I tried to remove as much tension on the arm by the wires as possible, although some still remained. Annoyingly, modelling the added tension on the arm due to wires was not as simple as assuming a constant force acting on the side with the wires, nor a linearly increasing force as the arm tilts. Instead, the tension follows a hysteresis curve, where the tension is dependent on the most recent direction of tilt of the arm. For example, tilting the arm fully to the left (towards the wires that run up the arm), increases the tension on that side, such that releasing the arm from the vertical results in the arm always tilting towards the left. If after that, you manually tilt the arm fully to the other side, the tension profile changes again, and now the arm always tilts to the right when released from the vertical. I strongly suspect this is due to the wires themselves slightly deforming plastically when introduced to the stress from the arm tilting, either compressing them or elongating them, but regardless, it made fine tuning the PID controller impossible without first making some modifications to both the design and the controller itself.
+
+First of all, I gave up on trying to balance the arm perfectly at the vertical. I decided this not only because of the reason just mentioned, but also because the arm doesn't have a way of correcting the angle if it starts tilting backwards. The motor can only correct negative angles (if the arm tilts to the left), but can't correct positive angles (tilting to the right). Without a way of correcting the arm if it tilts to the right, it is intrinsically impossible to balance the arm there. I therefore decided to experiment with different target angles, eventually settling on 8 degrees to the vertical. This gives 8 degrees of wiggle room for the motor to quickly reduce its throttle and rely on gravity to bring the arm back to the target angle. 
+
+To combat the hysteresis curve of the tension profile, I tested adding another wire on the other side, not electrically connected to anything, but simply to act as an opposing force to the wires on the other side; if one side compresses, the other side elongates, with the hope that they would cancel out. This partially helped, but didn't remove the issue entirely. It also added the effect of dampening the fall of the arm in both directions, as if the arm were moving in a denser medium. I then decided I would need a material that wouldn't plastically deform when under tension, and so found a hair band of just the right size to apply just enough tension to the arm to always pull the arm down towards the left side, without introducing too much tension once the arm starts falling. This worked very well, and largely drowned out the hysteresis effect from the wires. It did mean I had to retune the entire PID controller and vastly increase the base throttle but was well worth it. The arm could now be reliably stabilized through balancing gravity plus tension due to the band against the thrust from the motor. 
+
+I also modified the integral part of the PID controller to cap at -5 if the arm starts to tilt at an angle less than 8. When I switch on the system, I have the arm fully tilted to the right so that the motor doesn't suddenly turn on rapidly. If there were no lower limit to the integral term, a large negative value would accumulate before the arm is manually tilted over to the left side and would cause issues. I also experimented with a decay feature to the integral term when at angles less than 8: a constant multiplied to the integral term to increase build up if necessary to avoid the arm tipping past the vertical. I played around with a few values but ultimately ended up just setting it to 1. 
 
 ## Experimental Results:
 
+Below are some screenshots of the error graph in a variety of arm circumstances:
 
+These are two snapshots taken of the arm stabilizing at 8 degrees with no perturbation. Here you can see that the arm can stabilize within roughly a degree of the target angle consistently.
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/0c1882f0-a591-49d3-a44d-2757d32a6f16" alt="Main Front" width="500">
+  <img src="https://github.com/user-attachments/assets/3306cbf0-b8d8-4ae0-8113-1bb6bca72219" alt="Main Front" width="500">
+</p>
 
+These snapshots show two examples of a sudden and sharp perturbation to the arm (quickly prodding the arm with my finger). You can see the derivative term strongly activating causing the immediate and fast return back to near the target angle, with the integral and proportional terms slowly fixing any remaining error over the course of the next few seconds.
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/cdf9c535-f105-4fe9-9e5c-9c83415f775c" alt="Main Front" width="500">
+  <img src="https://github.com/user-attachments/assets/05c3feeb-3b11-4f1b-8c5c-3f5e13e6756b" alt="Main Front" width="500">
+</p>
+
+Here the entire base was tilted to an angle of around 25 degrees from horizontal at time = 181 seconds (I lifted the base up and placed the end on a block). Given the slow change, the derivative term isn't used nearly as much here as above, and so the correction back to the target angle isn't as quick here. Nevertheless, the arm does return to its original position within 5-10 seconds; by time = 190, the arm is completely back to how it was before.
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/0e6ee64c-2ddd-437b-bec0-55e1c4ba02e5" alt="Main Front" width="500">
+  <img src="https://github.com/user-attachments/assets/0204f0a2-7ebf-4eee-9bfb-dfd60817825a" alt="Main Front" width="500">
+</p>
+
+## Conclusion:
+
+Overall, I'm very happy with how this project turned out. I do believe there is likely some room for improvement in a variety of areas though: reducing tension on the arm further so as to not rely on a hair band would be a start, also using some kind of low-pass filter on the calculated angle would help reduce some of the jitteriness and would allow me to use a larger proportional term to reduce the time of recovery. That being said, I do believe I have succeeded with the bulk of the requirements I set out for myself for this project. The arm, whilst now at 8 degrees from the normal, does balance there reliably. The arm can also recover from pretty much any tilting of the base or prodding of my finger, the device can be switched on manually, and overall I'm very pleased with the density of the electronic components within the design and aesthetically I think it looks very appealing. This project was, at the end of the day, ultimately a exercise in learning most of what I will encounter for the drone I plan to start imminently, which I can confidently say I have achieved.  
